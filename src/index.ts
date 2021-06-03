@@ -9,7 +9,13 @@ const main = async () => {
         type: 'postgresql',
         debug: !__prod__,
     });
+
+    const post = orm.em.create(Post, { title: 'mt first post' });
+    await orm.em.persistAndFlush(post);
+    console.log('--------------sql 2------------------');
+    await orm.em.nativeInsert(Post, {title: 'mt first post 2'});
 };
 
-
-console.log('Hello World');
+main().catch((err) => {
+    console.error(err);
+});
