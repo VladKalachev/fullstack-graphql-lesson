@@ -34,12 +34,21 @@ export class UserResolver {
     @Arg('options') options: UsernamePasswordInput,
     @Ctx() {em}: MyContext 
   ) {
-    const hashedPassword = argon2.hash(options.password);
+    const hashedPassword = await argon2.hash(options.password);
     const user = em.create(User, {
       username: options.username, 
-      password: hashedPassword
+      password: hashedPassword,
     });
     await em.persistAndFlush(user);
     return user
+  }
+
+  @Mutation(() => Boolean)
+  async deleteUser(
+    @Arg('id', () => Int) id: number,
+    @Ctx() {em}: MyContext
+  ): Promise<boolean> {
+    await em.nativeDelete(User, { id });
+    return true;
   }
 }
