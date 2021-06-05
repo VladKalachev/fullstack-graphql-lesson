@@ -31,6 +31,18 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
 
+  @Query(() => User, {nullable: true})
+  me( 
+    @Ctx() {req, em}: MyContext
+  ) {
+    if (!req.session.userId){
+      return null;
+    };
+
+    const user = em.findOne(User, { id: req.session.userId });
+    return user;
+  }
+
   @Query(() => [User])
   users( 
     @Ctx() {em}: MyContext
