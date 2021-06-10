@@ -11,10 +11,12 @@ import { HelloResolver } from './resolvers/hello';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
 import connectRedis from 'connect-redis';
-import { __prod__ } from './constants';
+import { COOKIE_NAME, __prod__ } from './constants';
 import cors from 'cors';
+import { sendEmail } from './utils/sendEmail';
 
 const main = async () => {
+    sendEmail('bob@bob.com', 'hello there');
     const orm =  await MikroORM.init(mikroConfig);
     await orm.getMigrator().up();
     const app = express();
@@ -31,7 +33,7 @@ const main = async () => {
 
     app.use(
       session({
-          name: 'qid',
+          name: COOKIE_NAME,
           store: new RedisStore({ 
             client: redisClient,
             disableTouch: true,
