@@ -3,7 +3,7 @@ import { MikroORM } from '@mikro-orm/core';
 import 'reflect-metadata';
 import mikroConfig from './mikro-orm.config';
 import express from 'express';
-import redis from 'redis';
+import Redis from 'ioredis';
 import session from 'express-session';
 import {ApolloServer} from 'apollo-server-express';
 import {buildSchema} from 'type-graphql';
@@ -13,16 +13,15 @@ import { UserResolver } from './resolvers/user';
 import connectRedis from 'connect-redis';
 import { COOKIE_NAME, __prod__ } from './constants';
 import cors from 'cors';
-import { sendEmail } from './utils/sendEmail';
 
 const main = async () => {
-    sendEmail('bob@bob.com', 'hello there');
     const orm =  await MikroORM.init(mikroConfig);
     await orm.getMigrator().up();
+
     const app = express();
 
     const RedisStore = connectRedis(session);
-    const redisClient = redis.createClient();
+    const redis = Redis();
 
     app.use(
       cors({
@@ -35,7 +34,7 @@ const main = async () => {
       session({
           name: COOKIE_NAME,
           store: new RedisStore({ 
-            client: redisClient,
+            client: redis,
             disableTouch: true,
           }),
           cookie: {
@@ -55,7 +54,7 @@ const main = async () => {
             resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ em: orm.em, req, res })
+        context: ({ req, res }) => ({ em: orm.em, req, res, redis })
     });
 
     apolloServer.applyMiddleware({ 

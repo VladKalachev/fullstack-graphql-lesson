@@ -20,7 +20,7 @@ export class User {
   @Property({ type: "text", unique: true })
   username!: string;
 
-  @Field(() => String)
+  @Field()
   @Property({ type: "text", unique: true })
   email!: string;
 

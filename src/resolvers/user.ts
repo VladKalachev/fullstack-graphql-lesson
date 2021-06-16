@@ -5,6 +5,7 @@ import argon2 from 'argon2';
 import { COOKIE_NAME } from '../constants';
 import { UsernamePasswordInput } from './UsernamePasswordInput';
 import { validateRegister } from '../utils/validateRegister';
+import { sendEmail } from '../utils/sendEmail';
 
 @ObjectType()
 class FieldError {
@@ -25,15 +26,26 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('email') email: string,
+    @Ctx() {em}: MyContext
+  ) {
+    const user = await em.findOne(User, { email });
+    if(!user) {
+      // the email is not in the db
+      return true;
+    }
 
-  // @Mutation(() => Boolean)
-  // async forgotPassword(
-  //   @Arg('email') email: string,
-  //  // @Ctx() {em}: MyContext
-  // ) {
-  //   // const user = await em.findOne(User, { email });
-  //   return true;
-  // }
+    const token = 'asdasd2222adsf';
+    
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
+
+    return true;
+  }
 
   @Query(() => User, {nullable: true})
   async me( 
@@ -115,7 +127,7 @@ export class UserResolver {
     if(!user) {
       return {
         errors: [{
-          field: "username",
+          field: "usernameOrEmail",
           message: "that username doesn't exist",
         }]
       }
