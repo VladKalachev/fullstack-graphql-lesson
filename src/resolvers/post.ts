@@ -95,13 +95,19 @@ export class PostResolver {
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     const reaLimitPlusOne = realLimit + 1;
-    const replacements: any[] = [reaLimitPlusOne, req.session.userId];
+    const replacements: any[] = [reaLimitPlusOne];
 
-    if (cursor) {
-      replacements.push(new Date(parseInt(cursor)));
+    if (req.session.userId) {
+      replacements.push(req.session.userId);
     }
 
-    console.log('req.session', req.session.userId)
+    let cursorIdx = 3;
+    if (cursor) {
+      replacements.push(new Date(parseInt(cursor)));
+      cursorIdx = replacements.length;
+    }
+
+    console.log('req.session', replacements, req.session.userId)
 
     const posts = await getConnection().query(
       `
@@ -114,18 +120,16 @@ export class PostResolver {
       'updatedAt', u."updatedAt"
       ) creator,
     ${
-      true 
-      ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"' 
+      req.session.userId 
+      ? `(select value from updoot where "userId" = ${replacements[1]} and "postId" = p.id) "voteStatus"` 
       : 'null as "voteStatus"'
     }
     from post p
     inner join public.user u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $3` : ""}
+    ${cursor ? `where p."createdAt" < ${cursorIdx}` : ""}
     order by p."createdAt" DESC
-    limit $1
-    `,
-      replacements
-    );
+    limit ${replacements[0]}
+    `);
   
     // const qb = getConnection()
     // .getRepository(Post)
@@ -147,15 +151,11 @@ export class PostResolver {
       posts: posts.slice(0, realLimit),
       hasMore: posts.length === reaLimitPlusOne,
     };
-    // return {
-    //   posts: posts.slice(0, realLimit),
-    //   hasMore: posts.length === realLimitPlusOne,
-    // };
   }
 
   @Query(() => Post, { nullable: true})
   post(@Arg('id', () => Int) id: number): Promise<Post | undefined> {
-    return Post.findOne(id);
+    return Post.findOne(id, { relations: ['creator'] });
   }
 
   @Mutation(() => Post)
@@ -186,10 +186,12 @@ export class PostResolver {
   }
 
   @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
   async deletePost( 
-    @Arg('id', () => Int) id: number
+    @Arg('id', () => Int) id: number, 
+    @Ctx() {req}: MyContext
   ): Promise<boolean> {
-    await Post.delete(id);
+    await Post.delete({ id, creatorId: req.session.userId });
     return true;
   }
   
