@@ -128,10 +128,12 @@ export class PostResolver {
       `
     select p.*
     from post p
-    ${cursor ? `where p."createdAt" < ${replacements[1]}` : ""}
+    ${cursor ? `where p."createdAt" < $2` : ""}
     order by p."createdAt" DESC
-    limit ${replacements[0]}
-    `);
+    limit $1
+    `,
+      replacements
+    );
   
     return {
       posts: posts.slice(0, realLimit),
